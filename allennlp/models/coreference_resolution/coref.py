@@ -404,14 +404,25 @@ class CoreferenceResolver(Model):
     @overrides
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         mention_recall = self._mention_recall.get_metric(reset)
-        coref_precision, coref_recall, coref_f1 = self._conll_coref_scores.get_metric(reset)
+        coref_precision, coref_recall, coref_f1, muc_precision, b_cubed_precision, ceafe_precision, lea_precision, muc_recall, b_cubed_recall, ceafe_recall, lea_recall, muc_f1, b_cubed_f1, ceafe_f1, lea_f1 = self._conll_coref_scores.get_metric(reset)
 
-        return {
-            "coref_precision": coref_precision,
-            "coref_recall": coref_recall,
-            "coref_f1": coref_f1,
-            "mention_recall": mention_recall,
-        }
+        return {"coref_precision": coref_precision,
+                "coref_recall": coref_recall,
+                "coref_f1": coref_f1,
+                "mention_recall": mention_recall,
+                "muc_precision": muc_precision,
+                "b_cubed_precision": b_cubed_precision,
+                "ceafe_precision": ceafe_precision,
+                "lea_precision": lea_precision,
+                "muc_recall": muc_recall,
+                "b_cubed_recall": b_cubed_recall,
+                "ceafe_recall": ceafe_recall,
+                "lea_recall": lea_recall,
+                "muc_f1": muc_f1,
+                "b_cubed_f1": b_cubed_f1,
+                "ceafe_f1": ceafe_f1,
+                "lea_f1": lea_f1
+               }
 
     @staticmethod
     def _generate_valid_antecedents(
