@@ -12,7 +12,7 @@ from allennlp.training.metrics.metric import Metric
 @Metric.register("conll_coref_scores")
 class ConllCorefScores(Metric):
     def __init__(self) -> None:
-        self.scorers = [Scorer(m) for m in (Scorer.muc, Scorer.b_cubed, Scorer.ceafe)]
+        self.scorers = [Scorer(m) for m in (Scorer.muc, Scorer.b_cubed, Scorer.ceafe, Scorer.lea)]
 
     @overrides
     def __call__(
@@ -56,16 +56,39 @@ class ConllCorefScores(Metric):
     @overrides
     def get_metric(self, reset: bool = False) -> Tuple[float, float, float]:
         metrics = (lambda e: e.get_precision(), lambda e: e.get_recall(), lambda e: e.get_f1())
-        precision, recall, f1_score = tuple(
-            sum(metric(e) for e in self.scorers) / len(self.scorers) for metric in metrics
-        )
+        precision, recall, f1_score = tuple(sum(metric(e) for e in self.scorers) / len(self.scorers)
+                                            for metric in metrics)
+        
+        # muc, b_cubed, ceafe and lea: precision, recall, f1 scores
+        evaluation_metric_names = ["precision", "recall", "f1"]
+        metric_names = ["muc", "b_cubed", "ceafe", "lea"]
+
+        result = {}
+        for metric, evaluation_metric_name in zip(metrics, evaluation_metric_names):
+            for scorer, metric_name in zip(self.scorers, metric_names):
+                result[metric_name + "_" + evaluation_metric_name] = metric(scorer)   
+      
+        muc_precision = result["muc_precision"]
+        b_cubed_precision = result["b_cubed_precision"]
+        ceafe_precision = result["ceafe_precision"]
+        lea_precision = result["lea_precision"]
+        muc_recall = result["muc_recall"]
+        b_cubed_recall = result["b_cubed_recall"]
+        ceafe_recall = result["ceafe_recall"]
+        lea_recall = result["lea_recall"]
+        muc_f1 = result["muc_f1"]
+        b_cubed_f1 = result["b_cubed_f1"]
+        ceafe_f1 = result["ceafe_f1"]
+        lea_f1 = result["lea_f1"]
+
         if reset:
             self.reset()
-        return precision, recall, f1_score
+            
+        return precision, recall, f1_score, muc_precision, b_cubed_precision, ceafe_precision, lea_precision, muc_recall, b_cubed_recall, ceafe_recall, lea_recall, muc_f1, b_cubed_f1, ceafe_f1, lea_f1
 
     @overrides
     def reset(self):
-        self.scorers = [Scorer(metric) for metric in (Scorer.muc, Scorer.b_cubed, Scorer.ceafe)]
+        self.scorers = [Scorer(metric) for metric in (Scorer.muc, Scorer.b_cubed, Scorer.ceafe, Scorer.lea)]
 
     @staticmethod
     def get_gold_clusters(gold_clusters):
@@ -248,3 +271,28 @@ class Scorer:
         row, col = linear_sum_assignment(-scores)
         similarity = sum(scores[row, col])
         return similarity, len(clusters), similarity, len(gold_clusters)
+    
+    @staticmethod
+    def lea(clusters, mention_to_gold):
+        
+        # borrowed from https://github.com/clarkkev/deep-coref/blob/master/evaluation.py
+
+        num, dem = 0, 0
+        
+        for c in clusters:
+            if len(c) == 1:
+                continue
+            
+            common_links=0
+            all_links = len(c) * (len(c) - 1)/2.0
+            for i, m in enumerate(c):
+                if m in mention_to_gold:
+                    for m2 in c[i+1:]:
+                        if m2 in mention_to_gold and mention_to_gold[m] == mention_to_gold[m2]:
+                            common_links +=1
+        
+            num += len(c) * common_links / float(all_links)
+            dem += len(c)
+
+        return num, dem
+    
