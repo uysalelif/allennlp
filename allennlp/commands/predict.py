@@ -160,7 +160,7 @@ class _PredictManager:
         self._predictor = predictor
         self._input_file = input_file
         if output_file is not None:
-            self._output_file = open(output_file, "w")
+            self._output_file = open(output_file, "w", encoding="utf-8")
         else:
             self._output_file = None
         self._batch_size = batch_size
@@ -203,7 +203,7 @@ class _PredictManager:
                     yield self._predictor.load_line(line)
         else:
             input_file = cached_path(self._input_file)
-            with open(input_file, "r") as file_input:
+            with open(input_file, "r", encoding="utf-8") as file_input:
                 for line in file_input:
                     if not line.isspace():
                         yield self._predictor.load_line(line)
@@ -228,7 +228,7 @@ class _PredictManager:
             for batch_json in lazy_groups_of(self._get_json_data(), self._batch_size):
                 for model_input_json, result in zip(batch_json, self._predict_json(batch_json)):
                     self._maybe_print_to_console_and_file(
-                        index, result, json.dumps(model_input_json)
+                        index, result, json.dumps(model_input_json, ensure_ascii=False)
                     )
                     index = index + 1
 
